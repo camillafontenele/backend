@@ -12,7 +12,8 @@ model Deck {
   name        String
   description String?
   createdAt   DateTime @default(now())
-  cards       Card[]
+
+  cards Card[]
 }
 
 model Card {
@@ -21,5 +22,17 @@ model Card {
   front     String
   back      String
   createdAt DateTime @default(now())
-  deck      Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  deck    Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  reviews Review[]
+}
+
+model Review {
+  id           String   @id @default(uuid())
+  cardId       String
+  rating       String
+  reviewedAt   DateTime @default(now())
+  nextReviewAt DateTime
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
 }

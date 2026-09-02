@@ -22,7 +22,7 @@ export async function cardRoutes(app: FastifyInstance) {
     return reply.status(201).send(card);
   });
 
-  app.get("/decks/:deckId/cards", async (request) => {
+  app.get("/decks/:deckId/cards", async (request, reply) => {
     const { deckId } = request.params as {
       deckId: string;
     };
