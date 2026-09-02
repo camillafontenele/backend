@@ -1,4 +1,4 @@
-import type { ReviewRating } from "./review";
+import type { ReviewRating } from "./review.js";
 
 export function calculateNextReview(
     rating: ReviewRating,

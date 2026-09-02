@@ -1,10 +1,20 @@
 import type { FastifyInstance } from "fastify";
-import { prisma } from "../../lib/prisma";
-import type { ReviewRating } from "./review";
-import { calculateNextReview } from "./calculate-next-review";
+import { prisma } from "../../lib/prisma.js";
+import type { ReviewRating } from "./review.js";
+import { calculateNextReview } from "./calculate-next-review.js";
 
 export async function reviewRoutes(app: FastifyInstance) {
-  app.post("/cards/:cardId/reviews", async (request, reply) => {
+  app.post(
+  "/cards/:cardId/reviews",
+  {
+    schema: {
+      tags: ["Reviews"],
+      summary: "Registra uma revisão",
+      description:
+        "Registra a avaliação de um card e calcula a próxima revisão usando o SRS.",
+    },
+  },
+  async (request, reply) => {
     const { cardId } = request.params as {
       cardId: string;
     };

@@ -1,15 +1,43 @@
 import Fastify from "fastify";
-import { deckRoutes } from "./modules/decks/deck-routes";
-import { cardRoutes } from "./modules/cards/card-routes";
-import { reviewRoutes } from "./modules/reviews/review-routes";
+import { deckRoutes } from "./modules/decks/deck-routes.js";
+import { cardRoutes } from "./modules/cards/card-routes.js";
+import { reviewRoutes } from "./modules/reviews/review-routes.js";
+import swagger from "@fastify/swagger";
+import swaggerUi from "@fastify/swagger-ui";
 
 const app = Fastify({
   logger: true,
 });
 
-app.get("/", async () => {
-  return { message: "MemDeck Api funcionando" };
+await app.register(swagger, {
+  openapi: {
+    info: {
+      title: "MemDeck API",
+      description: "API para gerenciamento de decks, cards e revisões com SRS.",
+      version: "1.0.0",
+    },
+  },
 });
+
+await app.register(swaggerUi, {
+  routePrefix: "/docs",
+});
+
+app.get(
+  "/",
+  {
+    schema: {
+      tags: ["Health"],
+      summary: "Verifica o status da API",
+      description: "Retorna uma mensagem indicando que a API está funcionando.",
+    },
+  },
+  async () => {
+    return {
+      message: "MemDeck Api funcionando",
+    };
+  },
+);
 
 app.register(deckRoutes);
 app.register(cardRoutes);
