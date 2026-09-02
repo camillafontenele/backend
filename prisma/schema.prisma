@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Deck {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  cards       Card[]
+}
+
+model Card {
+  id        String   @id @default(uuid())
+  deckId    String
+  front     String
+  back      String
+  createdAt DateTime @default(now())
+  deck      Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+}
