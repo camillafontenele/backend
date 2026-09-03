@@ -71,4 +71,58 @@ export async function reviewRoutes(app: FastifyInstance) {
       return reply.status(201).send(review);
     },
   );
+
+  app.get(
+    "/reviews/due",
+    {
+      schema: {
+        tags: ["Reviews"],
+        summary: "Lista os cards para revisão",
+        description:
+          "Retorna os cards cuja próxima revisão já está disponível.",
+
+        response: {
+          200: {
+            description: "Cards disponiveis para revisão",
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+                deckId: { type: "string" },
+                front: { type: "string" },
+                back: { type: "string" },
+                createdAt: { type: "string" },
+              },
+            },
+          },
+        },
+      },
+    },
+    async () => {
+      const now = new Date();
+      const cards = await prisma.card.findMany({
+        include: {
+          reviews: {
+            orderBy: {
+              reviewedAt: "desc",
+            },
+            take: 1,
+          },
+        },
+      });
+
+      const dueCards = cards.filter((card) => {
+        const lastReview = card.reviews[0];
+
+        if (!lastReview) {
+          return true;
+        }
+
+        return lastReview.nextReviewAt <= now;
+      });
+
+      return dueCards;
+    },
+  );
 }
