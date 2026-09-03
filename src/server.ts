@@ -2,8 +2,10 @@ import Fastify from "fastify";
 import { deckRoutes } from "./modules/decks/deck-routes.js";
 import { cardRoutes } from "./modules/cards/card-routes.js";
 import { reviewRoutes } from "./modules/reviews/review-routes.js";
+import { authRoutes } from "./modules/auth/auth-routes.js";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
+import jwt from "@fastify/jwt";
 
 const app = Fastify({
   logger: true,
@@ -23,8 +25,12 @@ await app.register(swaggerUi, {
   routePrefix: "/docs",
 });
 
+await app.register(jwt, {
+  secret: process.env.JWT_SECRET ?? "dev-secret",
+});
+
 app.get(
-  "/",
+  "/health",
   {
     schema: {
       tags: ["Health"],
@@ -39,6 +45,7 @@ app.get(
   },
 );
 
+app.register(authRoutes);
 app.register(deckRoutes);
 app.register(cardRoutes);
 app.register(reviewRoutes);

@@ -7,12 +7,25 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String?
+  googleId     String?  @unique
+  createdAt    DateTime @default(now())
+
+  decks Deck[]
+}
+
 model Deck {
   id          String   @id @default(uuid())
+  userId      String
   name        String
   description String?
   createdAt   DateTime @default(now())
 
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   cards Card[]
 }
 
