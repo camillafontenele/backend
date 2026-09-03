@@ -2,11 +2,13 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "../../lib/prisma.js";
 import type { ReviewRating } from "./review.js";
 import { calculateNextReview } from "./calculate-next-review.js";
+import { authGuard } from "../auth/auth-guard.js";
 
 export async function reviewRoutes(app: FastifyInstance) {
   app.post(
     "/cards/:cardId/reviews",
     {
+      preHandler: [authGuard],
       schema: {
         tags: ["Reviews"],
         summary: "Registra uma revisão",
@@ -50,30 +52,57 @@ export async function reviewRoutes(app: FastifyInstance) {
               nextReviewAt: { type: "string" },
             },
           },
+          404: {
+            description: "Card não encontrado",
+            type: "object",
+            properties: {
+              message: { type: "string" },
+            },
+          },
         },
       },
     },
     async (request, reply) => {
+      const user = request.user as {
+        sub: string;
+        email: string;
+      };
+
       const { cardId } = request.params as {
         cardId: string;
       };
 
-      const body = request.body as {
+      const { rating } = request.body as {
         rating: ReviewRating;
       };
 
-      const reviewedAt = new Date();
+      const card = await prisma.card.findFirst({
+        where: {
+          id: cardId,
+          deck: {
+            userId: user.sub,
+          },
+        },
+      });
 
-      const nextReviewAt = calculateNextReview(body.rating, reviewedAt);
+      if (!card) {
+        return reply.status(404).send({
+          message: "Card não encontrado",
+        });
+      }
+
+      const reviewedAt = new Date();
+      const nextReviewAt = calculateNextReview(rating, reviewedAt);
 
       const review = await prisma.review.create({
         data: {
           cardId,
-          rating: body.rating,
+          rating,
           reviewedAt,
           nextReviewAt,
         },
       });
+
       return reply.status(201).send(review);
     },
   );
@@ -81,6 +110,7 @@ export async function reviewRoutes(app: FastifyInstance) {
   app.get(
     "/decks/:deckId/reviews/available",
     {
+      preHandler: [authGuard],
       schema: {
         tags: ["Reviews"],
         summary: "Lista os cards para revisão",
@@ -127,13 +157,39 @@ export async function reviewRoutes(app: FastifyInstance) {
               },
             },
           },
+          404: {
+            description: "Deck não encontrado",
+            type: "object",
+            properties: {
+              message: { type: "string" },
+            },
+          },
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
+      const user = request.user as {
+        sub: string;
+        email: string;
+      };
+
       const { deckId } = request.params as {
         deckId: string;
       };
+
+      const deck = await prisma.deck.findFirst({
+        where: {
+          id: deckId,
+          userId: user.sub,
+        },
+      });
+
+      if (!deck) {
+        return reply.status(404).send({
+          message: "Deck não encontrado",
+        });
+      }
+      
       const { mode } = request.query as {
         mode: "ideal" | "good" | "medium" | "short";
       };

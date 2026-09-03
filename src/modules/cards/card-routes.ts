@@ -1,10 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../../lib/prisma.js";
+import { authGuard } from "../auth/auth-guard.js";
 
 export async function cardRoutes(app: FastifyInstance) {
   app.post(
     "/decks/:deckId/cards",
     {
+      preHandler: [authGuard],
       schema: {
         tags: ["Cards"],
         summary: "Cria um novo card",
@@ -45,10 +47,23 @@ export async function cardRoutes(app: FastifyInstance) {
               createdAt: { type: "string" },
             },
           },
+          404: {
+            description: "Deck não encontrado",
+            type: "object",
+            properties: {
+              message: { type: "string" },
+            },
+          },
         },
       },
     },
+
     async (request, reply) => {
+      const user = request.user as {
+        sub: string;
+        email: string;
+      };
+
       const { deckId } = request.params as {
         deckId: string;
       };
@@ -57,6 +72,19 @@ export async function cardRoutes(app: FastifyInstance) {
         front: string;
         back: string;
       };
+
+      const deck = await prisma.deck.findFirst({
+        where: {
+          id: deckId,
+          userId: user.sub,
+        },
+      });
+
+      if (!deck) {
+        return reply.status(404).send({
+          message: "Deck não encontrado",
+        });
+      }
 
       const card = await prisma.card.create({
         data: {
@@ -73,6 +101,8 @@ export async function cardRoutes(app: FastifyInstance) {
   app.get(
     "/decks/:deckId/cards",
     {
+      preHandler: [authGuard],
+
       schema: {
         tags: ["Cards"],
         summary: "Lista os cards de um deck",
@@ -107,14 +137,39 @@ export async function cardRoutes(app: FastifyInstance) {
               },
             },
           },
+          404: {
+            description: "Deck não encontrado",
+            type: "object",
+            properties: {
+              message: { type: "string" },
+            },
+          },
         },
       },
     },
 
-    async (request) => {
+    async (request, reply) => {
+      const user = request.user as {
+        sub: string;
+        email: string;
+      };
+
       const { deckId } = request.params as {
         deckId: string;
       };
+
+      const deck = await prisma.deck.findFirst({
+        where: {
+          id: deckId,
+          userId: user.sub,
+        },
+      });
+
+      if (!deck) {
+        return reply.status(404).send({
+          message: "Deck não encontrado",
+        });
+      }
 
       const cards = await prisma.card.findMany({
         where: {
