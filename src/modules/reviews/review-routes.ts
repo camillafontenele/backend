@@ -32,6 +32,12 @@ export async function reviewRoutes(app: FastifyInstance) {
           },
         },
 
+        security: [
+          {
+            bearerAuth: [],
+          },
+        ],
+
         response: {
           201: {
             description: "Revisão registrada com sucesso",
@@ -99,6 +105,12 @@ export async function reviewRoutes(app: FastifyInstance) {
             },
           },
         },
+
+        security: [
+          {
+            bearerAuth: [],
+          },
+        ],
 
         response: {
           200: {

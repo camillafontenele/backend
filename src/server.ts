@@ -18,6 +18,16 @@ await app.register(swagger, {
       description: "API para gerenciamento de decks, cards e revisões com SRS.",
       version: "1.0.0",
     },
+
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+      },
+    },
   },
 });
 

@@ -27,6 +27,12 @@ export async function cardRoutes(app: FastifyInstance) {
           },
         },
 
+        security: [
+          {
+            bearerAuth: [],
+          },
+        ],
+
         response: {
           201: {
             description: "Card criado com sucesso",
@@ -79,6 +85,13 @@ export async function cardRoutes(app: FastifyInstance) {
             deckId: { type: "string" },
           },
         },
+
+        security: [
+          {
+            bearerAuth: [],
+          },
+        ],
+
         response: {
           200: {
             description: "Lista de cards do deck",

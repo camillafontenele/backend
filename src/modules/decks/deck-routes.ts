@@ -1,10 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../../lib/prisma.js";
+import { authGuard } from "../auth/auth-guard.js";
 
 export async function deckRoutes(app: FastifyInstance) {
   app.post(
     "/decks",
     {
+      preHandler: [authGuard],
       schema: {
         tags: ["Decks"],
         summary: "Cria um novo deck",
@@ -18,6 +20,12 @@ export async function deckRoutes(app: FastifyInstance) {
             description: { type: "string" },
           },
         },
+
+        security: [
+          {
+            bearerAuth: [],
+          },
+        ],
 
         response: {
           201: {
@@ -36,11 +44,16 @@ export async function deckRoutes(app: FastifyInstance) {
 
     async (request, reply) => {
       const body = request.body as { name: string; description?: string };
+      const user = request.user as {
+        sub: string;
+        email: string;
+      };
 
       const deck = await prisma.deck.create({
         data: {
           name: body.name,
           description: body.description,
+          userId: user.sub,
         },
       });
 
@@ -51,10 +64,17 @@ export async function deckRoutes(app: FastifyInstance) {
   app.get(
     "/decks",
     {
+      preHandler: [authGuard],
       schema: {
         tags: ["Decks"],
         summary: "Lista os decks",
-        description: "Retorna todos os baralhos cadastrados.",
+        description: "Retorna os baralhos do usuário autenticado.",
+
+        security: [
+          {
+            bearerAuth: [],
+          },
+        ],
 
         response: {
           200: {
@@ -73,8 +93,18 @@ export async function deckRoutes(app: FastifyInstance) {
         },
       },
     },
-    async () => {
-      const decks = await prisma.deck.findMany();
+
+    async (request) => {
+      const user = request.user as {
+        sub: string;
+        email: string;
+      };
+
+      const decks = await prisma.deck.findMany({
+        where: {
+          userId: user.sub,
+        },
+      });
 
       return decks;
     },
