@@ -73,13 +73,32 @@ export async function reviewRoutes(app: FastifyInstance) {
   );
 
   app.get(
-    "/reviews/due",
+    "/decks/:deckId/reviews/available",
     {
       schema: {
         tags: ["Reviews"],
         summary: "Lista os cards para revisão",
         description:
           "Retorna os cards cuja próxima revisão já está disponível.",
+
+        params: {
+          type: "object",
+          required: ["deckId"],
+          properties: {
+            deckId: { type: "string" },
+          },
+        },
+
+        querystring: {
+          type: "object",
+          required: ["mode"],
+          properties: {
+            mode: {
+              type: "string",
+              enum: ["ideal", "good", "medium", "short"],
+            },
+          },
+        },
 
         response: {
           200: {
@@ -99,9 +118,20 @@ export async function reviewRoutes(app: FastifyInstance) {
         },
       },
     },
-    async () => {
+    async (request) => {
+      const { deckId } = request.params as {
+        deckId: string;
+      };
+      const { mode } = request.query as {
+        mode: "ideal" | "good" | "medium" | "short";
+      };
+
       const now = new Date();
+
       const cards = await prisma.card.findMany({
+        where: {
+          deckId,
+        },
         include: {
           reviews: {
             orderBy: {
@@ -112,7 +142,7 @@ export async function reviewRoutes(app: FastifyInstance) {
         },
       });
 
-      const dueCards = cards.filter((card) => {
+      const availableCards = cards.filter((card) => {
         const lastReview = card.reviews[0];
 
         if (!lastReview) {
@@ -122,7 +152,20 @@ export async function reviewRoutes(app: FastifyInstance) {
         return lastReview.nextReviewAt <= now;
       });
 
-      return dueCards;
+      const limits = {
+        ideal: undefined,
+        good: 100,
+        medium: 50,
+        short: 20,
+      };
+
+      const limit = limits[mode];
+
+      if (!limit) {
+        return availableCards;
+      }
+
+      return availableCards.slice(0, limit);
     },
   );
 }
