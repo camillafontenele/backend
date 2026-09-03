@@ -1,8 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import type { Deck } from "./deck.js";
 import { prisma } from "../../lib/prisma.js";
-
-const decks: Deck[] = [];
 
 export async function deckRoutes(app: FastifyInstance) {
   app.post(
@@ -12,20 +9,42 @@ export async function deckRoutes(app: FastifyInstance) {
         tags: ["Decks"],
         summary: "Cria um novo deck",
         description: "Cria um novo baralho de flashcards.",
+
+        body: {
+          type: "object",
+          required: ["name"],
+          properties: {
+            name: { type: "string" },
+            description: { type: "string" },
+          },
+        },
+
+        response: {
+          201: {
+            description: "Deck criado com sucesso",
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              name: { type: "string" },
+              description: { type: "string" },
+              createdAt: { type: "string" },
+            },
+          },
+        },
       },
     },
+
     async (request, reply) => {
-      const body = request.body as { name: string; description: string };
+      const body = request.body as { name: string; description?: string };
 
-      const deck: Deck = {
-        id: crypto.randomUUID(),
-        name: body.name,
-        description: body.description,
-        createdAt: new Date(),
-      };
+      const deck = await prisma.deck.create({
+        data: {
+          name: body.name,
+          description: body.description,
+        },
+      });
 
-      decks.push(deck);
-      reply.status(201).send(deck);
+      return reply.status(201).send(deck);
     },
   );
 
@@ -36,6 +55,22 @@ export async function deckRoutes(app: FastifyInstance) {
         tags: ["Decks"],
         summary: "Lista os decks",
         description: "Retorna todos os baralhos cadastrados.",
+
+        response: {
+          200: {
+            description: "Lista de decks",
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+                name: { type: "string" },
+                description: { type: "string" },
+                createdAt: { type: "string" },
+              },
+            },
+          },
+        },
       },
     },
     async () => {
