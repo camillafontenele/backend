@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import argon2 from "argon2";
 import { prisma } from "../../lib/prisma.js";
+import { google } from "googleapis";
 
 export async function authRoutes(app: FastifyInstance) {
   app.post(
@@ -186,4 +187,87 @@ export async function authRoutes(app: FastifyInstance) {
       });
     },
   );
+
+  const googleOAuthClient = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI,
+  );
+
+  app.get("/auth/google", async (_request, reply) => {
+    const authorizationUrl = googleOAuthClient.generateAuthUrl({
+      access_type: "online",
+      scope: ["openid", "email", "profile"],
+    });
+
+    return reply.redirect(authorizationUrl);
+  });
+
+  app.get("/auth/google/callback", async (request, reply) => {
+    const { code } = request.query as {
+      code?: string;
+    };
+
+    if (!code) {
+      return reply.status(400).send({
+        message: "Código de autorização não informado",
+      });
+    }
+
+    const { tokens } = await googleOAuthClient.getToken(code);
+
+    googleOAuthClient.setCredentials(tokens);
+
+    const oauth2 = google.oauth2({
+      version: "v2",
+      auth: googleOAuthClient,
+    });
+
+    const { data: googleUser } = await oauth2.userinfo.get();
+
+    if (!googleUser.email) {
+      return reply.status(400).send({
+        message: "Não foi possível obter o e-mail da conta Google",
+      });
+    }
+
+    let user = await prisma.user.findUnique({
+      where: {
+        email: googleUser.email,
+      },
+    });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          name: googleUser.name ?? "Usuário",
+          email: googleUser.email,
+          googleId: googleUser.id,
+        },
+      });
+    } else if (!user.googleId && googleUser.id) {
+      user = await prisma.user.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          googleId: googleUser.id,
+        },
+      });
+    }
+
+    const token = app.jwt.sign({
+      sub: user.id,
+      email: user.email,
+    });
+
+    return reply.send({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+      token,
+    });
+  });
 }
