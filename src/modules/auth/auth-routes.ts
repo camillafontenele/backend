@@ -77,10 +77,15 @@ export async function authRoutes(app: FastifyInstance) {
         },
       });
 
-      const token = app.jwt.sign({
-        sub: user.id,
-        email: user.email,
-      });
+      const token = app.jwt.sign(
+        {
+          sub: user.id,
+          email: user.email,
+        },
+        {
+          expiresIn: "7d",
+        },
+      );
 
       return reply.status(201).send({
         user: {

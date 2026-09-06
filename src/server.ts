@@ -6,6 +6,7 @@ import { authRoutes } from "./modules/auth/auth-routes.js";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import jwt from "@fastify/jwt";
+import cors from "@fastify/cors";
 
 const app = Fastify({
   logger: true,
@@ -37,6 +38,10 @@ await app.register(swaggerUi, {
 
 await app.register(jwt, {
   secret: process.env.JWT_SECRET ?? "dev-secret",
+});
+
+await app.register(cors, {
+  origin: "http://localhost:5173",
 });
 
 app.get(
