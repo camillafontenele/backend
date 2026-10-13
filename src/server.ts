@@ -41,7 +41,9 @@ await app.register(jwt, {
 });
 
 await app.register(cors, {
-  origin: "http://localhost:5173",
+  origin: /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/,
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 });
 
 app.get(
